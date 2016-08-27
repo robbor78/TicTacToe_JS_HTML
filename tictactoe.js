@@ -9,6 +9,14 @@ GameState = {
     WINNER : 2
 }
 
+WinConfiguration = {
+    ROWWINS: 0,
+    COLWINS: 1,
+    DIAGWINS: 2,
+    RDIAGWINS: 3,
+    NONEWINS: 4
+};
+
 var c;
 var ctx;
 var width = 0;
@@ -57,6 +65,9 @@ function drawGrid() {
     var x = xstep;
     var y = ystep;
 
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 3;
+    
     for (var i=0; i<2; i++) {
 
         x += i*xstep;
@@ -86,7 +97,8 @@ function onClick(e) {
         grid[col][row] = turn;
         countPlaced++;
 
-        isGameFinished = CheckGameFinished(col, row, turn);
+        var state = CheckGameFinished(col, row, turn);
+        isGameFinished = state.isGameWon;
         if (isGameFinished) {
             winner = turn;
             result = GameState.WINNER;
@@ -98,7 +110,7 @@ function onClick(e) {
 
         if (isGameFinished) {
             SetResultText(GetResultText());
-
+            DrawWinner(state);
         }
 
         drawFunctions[turn](col,row);
@@ -126,17 +138,74 @@ function CheckGameFinished(col, row, player) {
     //http://stackoverflow.com/a/1058804/572332
 
     var colCnt=rowCnt=diagCnt=rdiagCnt=0
-    var winner=false;
+    var winner = false;
     var n = 3;
     for (var i=0; i<n && winner == false; i++) {
         if (grid[col][i]==player) { colCnt++;}
         if (grid[i][row]==player) { rowCnt++;}
         if (grid[i][i]==player) { diagCnt++;}
         if (grid[i][n-i-1]==player) { rdiagCnt++;}
+
+        winner = rowCnt==n || colCnt==n || diagCnt==n || rdiagCnt==n;
     }
-    if (rowCnt==n || colCnt==n || diagCnt==n || rdiagCnt==n) { winner=true;}
     
-    return winner;
+
+    var winConfig = WinConfiguration.NONEWINS;
+    var position = null;
+    if (rowCnt==n) {
+        winConfig =  WinConfiguration.ROWWINS;
+        position = row;
+    } else if (colCnt==n) {
+        winConfig = WinConfiguration.COLWINS;
+        position = col;
+    } else if (diagCnt==n) {
+        winConfig = WinConfiguration.DIAGWINS;
+    } else if (rdiagCnt==n) {
+        winConfig = WinConfiguration.RDIAGWINS;
+    }
+
+    return { isGameWon: winner, winConfig: winConfig, position: position   };
+}
+
+function DrawWinner(state) {
+    if (!state.isGameWon || state.winConfig == WinConfiguration.NONEWINS) {return;}
+
+    var xstart = xend =  ystart = yend = 0;
+
+    var xmax = width-1;
+    var ymax = height-1;
+
+    switch (state.winConfig) {
+    case WinConfiguration.ROWWINS:
+        xstart = 0.1*xstep;
+        xend = 0.9*(xmax);
+        ystart = yend = ystep * state.position + 0.5*ystep;
+        break;
+    case WinConfiguration.COLWINS:
+        ystart = 0.1*ystep;
+        yend = 0.9*(ymax);
+        xstart = xend = xstep * state.position + 0.5*xstep;
+        break;
+    case WinConfiguration.DIAGWINS:
+        xstart =  0.1*xstep;
+        ystart = 0.1*ystep;
+        xend = (xmax)-0.1*xstep;
+        yend = (ymax)-0.1*ystep;
+        break;
+    case WinConfiguration.RDIAGWINS:
+        xend =  0.1*xstep;
+        ystart = 0.1*ystep;
+        xstart = (xmax)-0.1*xstep;
+        yend = (ymax)-0.1*ystep;
+        break;
+    }
+
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(xstart,ystart);
+    ctx.lineTo(xend,yend);
+    ctx.stroke();
 }
 
 function drawCross(col,row) {
@@ -146,6 +215,8 @@ function drawCross(col,row) {
     var xend = (xstep * (col+1))-0.1*xstep;
     var yend = (ystep * (row+1))-0.1*ystep;
 
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(xstart,ystart);
     ctx.lineTo(xend,yend);
