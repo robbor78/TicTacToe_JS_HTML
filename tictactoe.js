@@ -108,12 +108,12 @@ function onClick(e) {
             result = GameState.DRAW;
         }
 
+        drawFunctions[turn](col,row);
+        
         if (isGameFinished) {
             SetResultText(GetResultText());
             DrawWinner(state);
         }
-
-        drawFunctions[turn](col,row);
 
         turn = (turn + 1)%2;
     }
